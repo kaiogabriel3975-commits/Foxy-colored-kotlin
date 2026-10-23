@@ -20,13 +20,12 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: gradle
+
+      - name: Gerar Gradle Wrapper
+        run: gradle wrapper
 
       - name: Configurar Gradle
         uses: gradle/actions/setup-gradle@v4
-
-      - name: Dar permissão de execução ao Gradle Wrapper
-        run: chmod +x gradlew
 
       - name: Compilar APK (Debug)
         run: ./gradlew assembleDebug --stacktrace
