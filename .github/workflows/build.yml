@@ -17,10 +17,12 @@ jobs:
 
       - name: Descompactar projeto
         run: |
-          unzip kitsune-kotlin.zip
-          # Se o zip extrair tudo para dentro de uma subpasta, movemos para a raiz:
+          # Extrai qualquer ficheiro .zip na raiz sem pedir confirmação (-o)
+          unzip -o "*.zip"
+          
+          # Se os ficheiros tiverem ficado dentro de uma subpasta chamada kitsune-kotlin, move-os para a raiz
           if [ -d "kitsune-kotlin" ]; then
-            mv kitsune-kotlin/* .
+            mv kitsune-kotlin/* . 2>/dev/null || true
           fi
 
       - name: Configurar JDK 17
