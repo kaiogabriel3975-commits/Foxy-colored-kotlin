@@ -202,12 +202,12 @@ class LedController(private val ctx: Context) {
         send("color", colorFrame(hue, sat))
     }
 
-    fun setBright(v: Int) {
+    fun updateBrightness(v: Int) {
         bright = v.coerceIn(100, 1000)
         send("bright", frame(0xBC, 0x05, 0x06, bright shr 8, bright and 255, 0, 0, 0, 0, 0x55))
     }
 
-    fun setPower(on: Boolean) {
+    fun updatePower(on: Boolean) {
         power = on
         send("power", frame(0xBC, 0x01, 0x01, if (on) 1 else 0, 0x55))
     }
