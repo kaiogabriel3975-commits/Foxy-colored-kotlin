@@ -17,10 +17,7 @@ jobs:
 
       - name: Descompactar projeto
         run: |
-          # Extrai qualquer ficheiro .zip na raiz sem pedir confirmação (-o)
           unzip -o "*.zip"
-          
-          # Se os ficheiros tiverem ficado dentro de uma subpasta chamada kitsune-kotlin, move-os para a raiz
           if [ -d "kitsune-kotlin" ]; then
             mv kitsune-kotlin/* . 2>/dev/null || true
           fi
@@ -34,8 +31,14 @@ jobs:
       - name: Configurar Gradle
         uses: gradle/actions/setup-gradle@v3
 
+      - name: Gerar Wrapper e Aceitar Licenças
+        run: |
+          gradle wrapper
+          chmod +x gradlew
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true
+
       - name: Compilar APK
-        run: gradle assembleDebug
+        run: ./gradlew assembleDebug
 
       - name: Guardar APK como Artifact
         uses: actions/upload-artifact@v4
