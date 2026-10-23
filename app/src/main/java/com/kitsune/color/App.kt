@@ -96,7 +96,7 @@ fun App(led: LedController) {
                                 .background(Color.hsv(led.hue.toFloat(), led.sat / 1000f, 1f)),
                         )
                         Text("  Cor", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                        Switch(checked = led.power, onCheckedChange = { led.setPower(it) }, enabled = on)
+                        Switch(checked = led.power, onCheckedChange = { led.updatePower(it) }, enabled = on)
                     }
                     Text("Matiz", style = MaterialTheme.typography.labelLarge)
                     Slider(
@@ -115,7 +115,7 @@ fun App(led: LedController) {
                     Text("Brilho", style = MaterialTheme.typography.labelLarge)
                     Slider(
                         value = led.bright.toFloat(),
-                        onValueChange = { led.setBright(it.toInt()) },
+                        onValueChange = { led.updateBrightness(it.toInt()) },
                         valueRange = 100f..1000f,
                         enabled = on,
                     )
