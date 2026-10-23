@@ -1,102 +1,41 @@
-name: Build Android
+name: Build Android APK
 
 on:
   push:
-    branches: [main]
-    tags: ['v*']
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
   workflow_dispatch:
-
-permissions:
-  contents: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      # secrets não podem ser lidos direto em `if:`; esta variável diz se a chave de assinatura existe
-      HAS_KEY: ${{ secrets.KEYSTORE_B64 != '' }}
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout do código
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Configurar JDK 17
+        uses: actions/setup-java@v4
         with:
-          node-version: 22
+          java-version: '17'
+          distribution: 'temurin'
 
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 21
+      - name: Configurar Gradle
+        uses: gradle/actions/setup-gradle@v3
 
-      - name: Instalar dependências
-        run: npm install
-
-      - name: Compilar a interface (Vite)
-        run: npm run build
-
-      - name: Criar o projeto Android
-        run: npx cap add android
-
-      - name: Ajustar Android (minSdk 31, permissões BLE, versão)
-        env:
-          VERSION_CODE: ${{ github.run_number }}
-          VERSION_NAME: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('1.0.{0}', github.run_number) }}
-        run: node scripts/patch-android.mjs
-
-      - name: Gerar ícones e splash
-        run: npx capacitor-assets generate --android
-
-      - name: Ícone adaptativo (Material You)
-        run: node scripts/patch-icons.mjs
-
-      - name: Sincronizar
-        run: npx cap sync android
-
-      - name: Compilar APK debug
-        working-directory: android
+      - name: Garantir Wrapper e Permissões
         run: |
+          if [ ! -f "gradlew" ]; then
+            gradle wrapper
+          fi
           chmod +x gradlew
-          ./gradlew assembleDebug
 
-      - name: Publicar APK debug
+      - name: Compilar APK (Debug)
+        run: ./gradlew assembleDebug
+
+      - name: Guardar APK como Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: kitsune-color-debug
-          path: android/app/build/outputs/apk/debug/app-debug.apk
-
-      # ---- Release assinado (só roda se os secrets existirem) ----
-      - name: Compilar APK release
-        if: env.HAS_KEY == 'true'
-        working-directory: android
-        run: ./gradlew assembleRelease
-
-      - name: Assinar APK
-        if: env.HAS_KEY == 'true'
-        env:
-          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASS: ${{ secrets.KEY_PASS }}
-        run: |
-          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
-          BT=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)
-          IN=$(ls android/app/build/outputs/apk/release/*.apk | head -1)
-          "${BT}zipalign" -p -f 4 "$IN" "$RUNNER_TEMP/aligned.apk"
-          "${BT}apksigner" sign \
-            --ks "$RUNNER_TEMP/release.jks" \
-            --ks-key-alias "$KEY_ALIAS" \
-            --ks-pass env:KEY_PASS --key-pass env:KEY_PASS \
-            --out kitsune-color.apk "$RUNNER_TEMP/aligned.apk"
-          "${BT}apksigner" verify kitsune-color.apk
-          rm -f "$RUNNER_TEMP/release.jks"
-
-      - name: Publicar APK assinado
-        if: env.HAS_KEY == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: kitsune-color-release
-          path: kitsune-color.apk
-
-      - name: Anexar ao GitHub Release (tags v*)
-        if: env.HAS_KEY == 'true' && startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: kitsune-color.apk
+          name: app-debug
+          path: app/build/outputs/apk/debug/app-debug.apk
