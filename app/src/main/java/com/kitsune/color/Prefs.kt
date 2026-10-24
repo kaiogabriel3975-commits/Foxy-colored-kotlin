@@ -50,7 +50,7 @@ class Prefs(ctx: Context) {
     /** 0 = sem, 1 = leve, 2 = forte */
     var wallBlur by mutableIntStateOf(sp.getInt("wallBlur", 1))
         private set
-    fun setWallBlur(v: Int) { wallBlur = v; sp.edit().putInt("wallBlur", v).apply() }
+    fun changeWallBlur(v: Int) { wallBlur = v; sp.edit().putInt("wallBlur", v).apply() }
 
     var wallVersion by mutableIntStateOf(sp.getInt("wallVer", 0))
         private set
@@ -58,15 +58,15 @@ class Prefs(ctx: Context) {
 
     var ledCount by mutableIntStateOf(sp.getInt("ledCount", 150))
         private set
-    fun setLedCount(v: Int) { ledCount = v.coerceIn(8, 300); sp.edit().putInt("ledCount", ledCount).apply() }
+    fun changeLedCount(v: Int) { ledCount = v.coerceIn(8, 300); sp.edit().putInt("ledCount", ledCount).apply() }
 
     var ledOrder by mutableIntStateOf(sp.getInt("ledOrder", 1))
         private set
-    fun setLedOrder(v: Int) { ledOrder = v; sp.edit().putInt("ledOrder", v).apply() }
+    fun changeLedOrder(v: Int) { ledOrder = v; sp.edit().putInt("ledOrder", v).apply() }
 
     var lastScreen by mutableIntStateOf(sp.getInt("lastScreen", 0))
         private set
-    fun setLastScreen(v: Int) { lastScreen = v; sp.edit().putInt("lastScreen", v).apply() }
+    fun changeLastScreen(v: Int) { lastScreen = v; sp.edit().putInt("lastScreen", v).apply() }
 }
 
 /** Cores recentes (as fixadas ficam sempre no início e nunca são apagadas). */
