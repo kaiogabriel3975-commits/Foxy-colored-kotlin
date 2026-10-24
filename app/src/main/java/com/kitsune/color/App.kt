@@ -140,7 +140,7 @@ fun App(c: Container, dark: Boolean) {
         if (n == screen) return
         if (prefs.stopOnLeave.value) c.stopAudio()
         screen = n
-        if (prefs.remember.value) prefs.setLastScreen(n)
+        if (prefs.remember.value) prefs.changeLastScreen(n)
     }
 
     // ----- tela ligada com som -----
