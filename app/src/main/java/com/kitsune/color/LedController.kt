@@ -329,7 +329,7 @@ class LedController(private val ctx: Context, private val prefs: Prefs) {
         send("color", colorFrame(hue, sat))
     }
 
-    fun setBright(v: Int) {
+    fun changeBright(v: Int) {
         bright = v.coerceIn(100, 1000)
         send("bright", brightFrame(bright))
     }
@@ -337,7 +337,7 @@ class LedController(private val ctx: Context, private val prefs: Prefs) {
     /** Usado pela música: muda o brilho sem mexer no estado da tela. */
     fun brightRaw(v: Int) = send("bright", brightFrame(v.coerceIn(100, 1000)))
 
-    fun setPower(on: Boolean) {
+    fun changePower(on: Boolean) {
         power = on
         send("power", frame(0xBC, 0x01, 0x01, if (on) 1 else 0, 0x55))
     }
