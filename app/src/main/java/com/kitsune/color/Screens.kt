@@ -104,12 +104,12 @@ fun ColorsScreen(c: Container, pad: PaddingValues) {
             Text("${led.bright / 10}%", style = MaterialTheme.typography.labelLarge)
         }
         Slider(
-            value = led.bright.toFloat(), onValueChange = { led.setBright(it.toInt()) },
+            value = led.bright.toFloat(), onValueChange = { led.changeBright(it.toInt()) },
             valueRange = 100f..1000f, enabled = on,
         )
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(if (led.power) "Ligado" else "Desligado", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-            Switch(checked = led.power, onCheckedChange = { led.setPower(it) }, enabled = on)
+            Switch(checked = led.power, onCheckedChange = { led.changePower(it) }, enabled = on)
         }
         Title("Cores recentes (segure para fixar)")
         val rec = c.recents.list
@@ -157,7 +157,7 @@ fun ModesScreen(c: Container, pad: PaddingValues) {
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Title("Brilho")
-        Slider(value = led.bright.toFloat(), onValueChange = { led.setBright(it.toInt()) }, valueRange = 100f..1000f, enabled = on)
+        Slider(value = led.bright.toFloat(), onValueChange = { led.changeBright(it.toInt()) }, valueRange = 100f..1000f, enabled = on)
         Title("Categorias")
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             groups.forEachIndexed { i, g ->
@@ -477,7 +477,7 @@ fun SettingsDialog(c: Container, onDismiss: () -> Unit, onPickWall: () -> Unit) 
                 Text("Desfoque do wallpaper", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("Sem", "Leve", "Forte").forEachIndexed { i, n ->
-                        FilterChip(selected = p.wallBlur == i, onClick = { tick(); p.setWallBlur(i) }, label = { Text(n) })
+                        FilterChip(selected = p.wallBlur == i, onClick = { tick(); p.changeWallBlur(i) }, label = { Text(n) })
                     }
                 }
                 SwitchRow("Reduzir movimento", p.reduce.value) { p.reduce.set(it) }
@@ -486,14 +486,14 @@ fun SettingsDialog(c: Container, onDismiss: () -> Unit, onPickWall: () -> Unit) 
                 Title("Fita LED")
                 Text("Quantidade de LEDs · ${p.ledCount}", style = MaterialTheme.typography.bodyMedium)
                 Slider(
-                    value = p.ledCount.toFloat(), onValueChange = { p.setLedCount(it.toInt()) },
+                    value = p.ledCount.toFloat(), onValueChange = { p.changeLedCount(it.toInt()) },
                     onValueChangeFinished = { c.led.ledCount(p.ledCount) }, valueRange = 8f..300f,
                 )
                 Text("Ordem das cores", style = MaterialTheme.typography.bodyMedium)
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     for (i in 1..6) {
                         FilterChip(
-                            selected = p.ledOrder == i, onClick = { tick(); p.setLedOrder(i); c.led.colorOrder(i) },
+                            selected = p.ledOrder == i, onClick = { tick(); p.changeLedOrder(i); c.led.colorOrder(i) },
                             label = { Text("Ordem $i") },
                         )
                     }
