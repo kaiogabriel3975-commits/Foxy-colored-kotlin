@@ -1,6 +1,7 @@
-# Kitsune color (nativo)
+[README.md](https://github.com/user-attachments/files/33895592/README.md)# Kitsune color (nativo)
 
-Versão em Kotlin + Jetpack Compose. Compila direto do zip pelo GitHub Actions (`.github/workflows/build-apk.yml`).
+Kotlin + Jetpack Compose (Material You). Compila direto do zip pelo GitHub Actions (`.github/workflows/build-apk.yml`).
 
-Etapa atual: conexão BLE (busca, GATT-DEMO automático, animação ao conectar), matiz/saturação/brilho e ligar/desligar.
-Próximas: roda de cores, modos, agendamento, microfone, música e ajustes.
+Inclui: conexão BLE (busca, GATT-DEMO automático, reconexão, animação ao conectar), roda de cores, brilho, cores recentes,
+modos de luz, microfone (aparelho e celular), player de música com luzes reativas, agendamento do aparelho,
+ajustes (tema, wallpaper, fita LED, preferências) e laboratório de comandos.
