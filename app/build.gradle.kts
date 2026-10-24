@@ -9,6 +9,7 @@ android {
     compileSdk = 35
 
     defaultConfig {
+        // sufixo ".nativo" permite instalar junto com o app em HTML (com.kitsune.color)
         applicationId = "com.kitsune.color.nativo"
         minSdk = 31
         targetSdk = 35
@@ -20,10 +21,8 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            // assinado com a chave de debug só para testar; o workflow reassina se houver chave própria
             signingConfig = signingConfigs.getByName("debug")
         }
     }
@@ -32,20 +31,9 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
-    buildFeatures {
-        compose = true
-    }
-
-    packaging {
-        resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
-        }
-    }
+    kotlinOptions { jvmTarget = "17" }
+    buildFeatures { compose = true }
+    packaging { resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" } }
 }
 
 dependencies {
