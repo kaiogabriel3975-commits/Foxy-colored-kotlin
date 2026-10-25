@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class, ExperimentalFoundationApi::class)
+
 package com.kitsune.color
 
 import android.Manifest
@@ -31,6 +33,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
@@ -82,7 +86,6 @@ private fun granted(ctx: android.content.Context, p: String) =
     ContextCompat.checkSelfPermission(ctx, p) == PackageManager.PERMISSION_GRANTED
 
 // ---------------------------------------------------------------- Cores
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ColorsScreen(c: Container, pad: PaddingValues) {
     val led = c.led
@@ -103,9 +106,9 @@ fun ColorsScreen(c: Container, pad: PaddingValues) {
             Text("Brilho", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
             Text("${led.bright / 10}%", style = MaterialTheme.typography.labelLarge)
         }
-        Slider(
-            value = led.bright.toFloat(), onValueChange = { led.changeBright(it.toInt()) },
-            valueRange = 100f..1000f, enabled = on,
+        ExpressiveSlider(
+            led.bright.toFloat(), { led.changeBright(it.toInt()) }, 100f..1000f,
+            enabled = on, startIcon = IcSunLow, endIcon = IcSunHigh,
         )
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(if (led.power) "Ligado" else "Desligado", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
@@ -157,7 +160,7 @@ fun ModesScreen(c: Container, pad: PaddingValues) {
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Title("Brilho")
-        Slider(value = led.bright.toFloat(), onValueChange = { led.changeBright(it.toInt()) }, valueRange = 100f..1000f, enabled = on)
+        ExpressiveSlider(led.bright.toFloat(), { led.changeBright(it.toInt()) }, 100f..1000f, enabled = on, startIcon = IcSunLow, endIcon = IcSunHigh)
         Title("Categorias")
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             groups.forEachIndexed { i, g ->
@@ -170,9 +173,9 @@ fun ModesScreen(c: Container, pad: PaddingValues) {
                 rowItems.forEachIndexed { k, (id, name) ->
                     val sel = id == mid
                     Column(
-                        Modifier.weight(1f).height(84.dp).clip(RoundedCornerShape(18.dp))
+                        Modifier.weight(1f).bounceClick(enabled = on) { c.stopAudio(); mid = id; led.mode(id) }
+                            .height(84.dp).clip(RoundedCornerShape(18.dp))
                             .background(if (sel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh)
-                            .clickable(enabled = on) { tick(); c.stopAudio(); mid = id; led.mode(id) }
                             .padding(10.dp),
                         verticalArrangement = Arrangement.Center,
                     ) {
@@ -185,7 +188,7 @@ fun ModesScreen(c: Container, pad: PaddingValues) {
             }
         }
         Title("Velocidade · ${speed.toInt()}")
-        Slider(value = speed, onValueChange = { speed = it; led.speed(it.toInt()) }, valueRange = 1f..100f, enabled = on)
+        ExpressiveSlider(speed, { speed = it; led.speed(it.toInt()) }, 1f..100f, enabled = on, startIcon = IcSlow, endIcon = IcFast)
         SwitchRow("Inverter sentido", dir, on) { dir = it; led.direction(it) }
 
         if (c.prefs.adv.value) LabCard(c)
@@ -246,12 +249,12 @@ fun MicScreen(c: Container, pad: PaddingValues) {
         }
         val dev = mic.source == 0
         Title(if (dev) "Sensibilidade do aparelho · ${mic.sensDev}%" else "Sensibilidade do celular · ${mic.sensPhone}%")
-        Slider(
-            value = (if (dev) mic.sensDev else mic.sensPhone).toFloat(),
-            onValueChange = {
+        ExpressiveSlider(
+            (if (dev) mic.sensDev else mic.sensPhone).toFloat(),
+            {
                 if (dev) { mic.sensDev = it.toInt(); if (mic.on) led.micSens(mic.sensDev) } else { mic.sensPhone = it.toInt(); mic.phoneSens(mic.sensPhone) }
             },
-            valueRange = 1f..100f,
+            1f..100f, startIcon = IcBarsLow, endIcon = IcBarsHigh,
         )
         if (dev) {
             Title("Efeito do aparelho")
@@ -276,6 +279,7 @@ fun MicScreen(c: Container, pad: PaddingValues) {
                     if (!mic.apply()) led.say("Não foi possível abrir o microfone.")
                 }
             },
+            shapes = ButtonDefaults.shapes(),
             enabled = on,
             modifier = Modifier.fillMaxWidth().padding(top = 12.dp).height(52.dp),
             colors = if (mic.on) ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error) else ButtonDefaults.buttonColors(),
@@ -331,11 +335,10 @@ fun MusicScreen(c: Container, pad: PaddingValues) {
                         style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
                     )
                     val frac = drag ?: (if (m.dur > 0) m.pos.toFloat() / m.dur else 0f)
-                    Slider(
-                        value = frac.coerceIn(0f, 1f),
-                        onValueChange = { drag = it },
-                        onValueChangeFinished = { drag?.let { f -> m.seek((f * m.dur).toInt()) }; drag = null },
+                    ExpressiveSlider(
+                        frac.coerceIn(0f, 1f), { drag = it }, 0f..1f,
                         modifier = Modifier.padding(top = 8.dp),
+                        onFinished = { drag?.let { f -> m.seek((f * m.dur).toInt()) }; drag = null },
                     )
                     Row(Modifier.fillMaxWidth()) {
                         Text(fmt(drag?.let { (it * m.dur).toInt() } ?: m.pos), style = MaterialTheme.typography.labelMedium)
@@ -347,15 +350,14 @@ fun MusicScreen(c: Container, pad: PaddingValues) {
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         val ink = MaterialTheme.colorScheme.onSurface
-                        Box(Modifier.size(52.dp).clip(CircleShape).clickable { tick(); m.prev() }, contentAlignment = Alignment.Center) { Ic(IcPrev, ink, 28.dp) }
+                        Box(Modifier.bounceClick { m.prev() }.size(52.dp).clip(CircleShape), contentAlignment = Alignment.Center) { Ic(IcPrev, ink, 28.dp) }
                         Box(
-                            Modifier.size(68.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary).clickable {
-                                tick()
+                            Modifier.bounceClick {
                                 if (m.playing || granted(ctx, Manifest.permission.RECORD_AUDIO)) m.toggle() else { pending = -1; recLauncher.launch(Manifest.permission.RECORD_AUDIO) }
-                            },
+                            }.size(68.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary),
                             contentAlignment = Alignment.Center,
                         ) { Ic(if (m.playing) IcPause else IcPlay, MaterialTheme.colorScheme.onPrimary, 34.dp) }
-                        Box(Modifier.size(52.dp).clip(CircleShape).clickable { tick(); m.next() }, contentAlignment = Alignment.Center) { Ic(IcNext, ink, 28.dp) }
+                        Box(Modifier.bounceClick { m.next() }.size(52.dp).clip(CircleShape), contentAlignment = Alignment.Center) { Ic(IcNext, ink, 28.dp) }
                     }
                     Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text("Variar brilho com o volume", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
@@ -373,7 +375,7 @@ fun MusicScreen(c: Container, pad: PaddingValues) {
         item { Title("Músicas") }
         if (!canRead) {
             item {
-                Button(onClick = { readLauncher.launch(audioPerm) }, modifier = Modifier.fillMaxWidth()) { Text("Permitir acesso às músicas") }
+                Button(onClick = { readLauncher.launch(audioPerm) }, shapes = ButtonDefaults.shapes(), modifier = Modifier.fillMaxWidth()) { Text("Permitir acesso às músicas") }
             }
         } else if (m.tracks.isEmpty()) {
             item { Text("Nenhuma música encontrada no aparelho.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
@@ -381,12 +383,10 @@ fun MusicScreen(c: Container, pad: PaddingValues) {
         itemsIndexed(m.tracks, key = { _, x -> x.id }) { i, x ->
             val sel = i == m.index
             Row(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp))
+                Modifier.fillMaxWidth().bounceClick {
+                    if (granted(ctx, Manifest.permission.RECORD_AUDIO)) m.play(i) else { pending = i; recLauncher.launch(Manifest.permission.RECORD_AUDIO) }
+                }.clip(RoundedCornerShape(18.dp))
                     .background(if (sel) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh)
-                    .clickable {
-                        tick()
-                        if (granted(ctx, Manifest.permission.RECORD_AUDIO)) m.play(i) else { pending = i; recLauncher.launch(Manifest.permission.RECORD_AUDIO) }
-                    }
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -430,9 +430,8 @@ private fun SchCard(title: String, s: Sch, changed: () -> Unit) {
                 DAYS.forEachIndexed { i, d ->
                     val sel = s.days[i]
                     Box(
-                        Modifier.size(40.dp).clip(CircleShape)
-                            .background(if (sel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest)
-                            .clickable { tick(); s.days[i] = !s.days[i]; changed() },
+                        Modifier.bounceClick { s.days[i] = !s.days[i]; changed() }.size(40.dp).clip(CircleShape)
+                            .background(if (sel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
@@ -453,41 +452,45 @@ private fun SchCard(title: String, s: Sch, changed: () -> Unit) {
 
 // ---------------------------------------------------------------- Ajustes (engrenagem)
 @Composable
-fun SettingsDialog(c: Container, onDismiss: () -> Unit, onPickWall: () -> Unit) {
+fun SettingsContent(c: Container, onClose: () -> Unit, onPickWall: () -> Unit) {
     val p = c.prefs
     val tick = LocalTick.current
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Surface(
-            shape = RoundedCornerShape(28.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            modifier = Modifier.padding(16.dp).widthIn(max = 440.dp).fillMaxWidth(),
-        ) {
-            Column(Modifier.verticalScroll(rememberScrollState()).padding(20.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Ajustes", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
-                    TextButton(onClick = onDismiss) { Text("Fechar") }
-                }
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Ajustes", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
+            TextButton(onClick = onClose) { Text("Fechar") }
+        }
                 Title("Aparência")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("Sistema", "Claro", "Escuro").forEachIndexed { i, n ->
+                    listOf("Automático", "Claro", "Escuro").forEachIndexed { i, n ->
                         FilterChip(selected = p.themeMode == i, onClick = { tick(); p.setTheme(i) }, label = { Text(n) })
                     }
                 }
-                FilledTonalButton(onClick = onPickWall, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) { Text("Trocar wallpaper") }
+                Text("Wallpaper", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("Cinza", "Claro", "Escuro", "Galeria").forEachIndexed { i, n ->
+                        FilterChip(
+                            selected = p.wallChoice == i,
+                            onClick = { tick(); if (i == 3) onPickWall() else p.changeWallChoice(i) },
+                            label = { Text(n) },
+                        )
+                    }
+                }
                 Text("Desfoque do wallpaper", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("Sem", "Leve", "Forte").forEachIndexed { i, n ->
                         FilterChip(selected = p.wallBlur == i, onClick = { tick(); p.changeWallBlur(i) }, label = { Text(n) })
                     }
                 }
+                SwitchRow("Blur da interface", p.blur.value) { p.blur.set(it) }
                 SwitchRow("Reduzir movimento", p.reduce.value) { p.reduce.set(it) }
                 SwitchRow("Vibração ao tocar", p.haptic.value) { p.haptic.set(it) }
 
                 Title("Fita LED")
                 Text("Quantidade de LEDs · ${p.ledCount}", style = MaterialTheme.typography.bodyMedium)
-                Slider(
-                    value = p.ledCount.toFloat(), onValueChange = { p.changeLedCount(it.toInt()) },
-                    onValueChangeFinished = { c.led.ledCount(p.ledCount) }, valueRange = 8f..300f,
+                ExpressiveSlider(
+                    p.ledCount.toFloat(), { p.changeLedCount(it.toInt()) }, 8f..300f,
+                    startIcon = IcDotsFew, endIcon = IcDotsMany, onFinished = { c.led.ledCount(p.ledCount) },
                 )
                 Text("Ordem das cores", style = MaterialTheme.typography.bodyMedium)
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -522,8 +525,6 @@ fun SettingsDialog(c: Container, onDismiss: () -> Unit, onPickWall: () -> Unit) 
 
                 Title("Avançado")
                 SwitchRow("Modo avançado (comandos brutos)", p.adv.value) { p.adv.set(it) }
-            }
-        }
     }
 }
 
