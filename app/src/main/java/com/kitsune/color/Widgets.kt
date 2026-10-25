@@ -1,32 +1,37 @@
+@file:OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
+
 package com.kitsune.color
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.VectorConverter
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -40,6 +45,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -49,6 +55,8 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.inset
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
@@ -56,16 +64,23 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
+import kotlin.math.hypot
 import kotlin.math.min
 import kotlin.math.sin
 
 /** Toque com vibração leve (se a preferência estiver ligada). */
 val LocalTick = staticCompositionLocalOf<() -> Unit> { {} }
 
+/** Clique com a física "elástica" do Material Expressive: encolhe ao tocar e volta com mola. */
 @Composable
-fun Modifier.ticking(onClick: () -> Unit): Modifier {
-    val t = LocalTick.current
-    return this.clickable { t(); onClick() }
+fun Modifier.bounceClick(enabled: Boolean = true, onClick: () -> Unit): Modifier {
+    val tick = LocalTick.current
+    val src = remember { MutableInteractionSource() }
+    val pressed by src.collectIsPressedAsState()
+    val s by animateFloatAsState(if (pressed) 0.9f else 1f, spring(dampingRatio = 0.42f, stiffness = 520f), label = "bounce")
+    return this
+        .graphicsLayer { scaleX = s; scaleY = s }
+        .clickable(interactionSource = src, indication = null, enabled = enabled) { tick(); onClick() }
 }
 
 // ---------- ícones desenhados (sem biblioteca de ícones, para o APK ficar leve) ----------
@@ -125,6 +140,12 @@ val IcGear: IconPaint = { c ->
     }
     drawCircle(c, m * .32f, style = st())
 }
+val IcPower: IconPaint = { c ->
+    val w = size.width
+    val h = size.height
+    drawArc(c, -50f, 280f, false, Offset(.2f * w, .24f * h), Size(.6f * w, .6f * w), style = st())
+    drawLine(c, Offset(.5f * w, .08f * h), Offset(.5f * w, .5f * h), size.minDimension * .09f, StrokeCap.Round)
+}
 val IcPlay: IconPaint = { c ->
     val w = size.width
     val h = size.height
@@ -148,13 +169,109 @@ val IcPrev: IconPaint = { c ->
     drawPath(Path().apply { moveTo(.8f * w, .22f * h); lineTo(.34f * w, .5f * h); lineTo(.8f * w, .78f * h); close() }, c)
     drawRoundRect(c, Offset(.18f * w, .22f * h), Size(.1f * w, .56f * h), CornerRadius(.03f * w))
 }
+// ícones pequenos para as trilhas dos sliders
+val IcSunLow: IconPaint = { c -> drawCircle(c, size.minDimension * .2f, style = st()) }
+val IcSunHigh: IconPaint = { c ->
+    val m = size.minDimension
+    drawCircle(c, m * .18f, style = st())
+    for (i in 0 until 8) {
+        val a = Math.toRadians(i * 45.0)
+        drawLine(
+            c, Offset(center.x + (cos(a) * m * .3f).toFloat(), center.y + (sin(a) * m * .3f).toFloat()),
+            Offset(center.x + (cos(a) * m * .45f).toFloat(), center.y + (sin(a) * m * .45f).toFloat()), m * .08f, StrokeCap.Round,
+        )
+    }
+}
+val IcSlow: IconPaint = { c ->
+    val w = size.width
+    val h = size.height
+    drawPath(Path().apply { moveTo(.38f * w, .22f * h); lineTo(.66f * w, .5f * h); lineTo(.38f * w, .78f * h) }, c, style = st())
+}
+val IcFast: IconPaint = { c ->
+    val w = size.width
+    val h = size.height
+    drawPath(Path().apply { moveTo(.18f * w, .22f * h); lineTo(.46f * w, .5f * h); lineTo(.18f * w, .78f * h) }, c, style = st())
+    drawPath(Path().apply { moveTo(.5f * w, .22f * h); lineTo(.78f * w, .5f * h); lineTo(.5f * w, .78f * h) }, c, style = st())
+}
+val IcBarsLow: IconPaint = { c ->
+    val w = size.width
+    val h = size.height
+    drawLine(c, Offset(.5f * w, .4f * h), Offset(.5f * w, .6f * h), size.minDimension * .12f, StrokeCap.Round)
+}
+val IcBarsHigh: IconPaint = { c ->
+    val w = size.width
+    val h = size.height
+    val sw = size.minDimension * .1f
+    drawLine(c, Offset(.25f * w, .4f * h), Offset(.25f * w, .6f * h), sw, StrokeCap.Round)
+    drawLine(c, Offset(.5f * w, .15f * h), Offset(.5f * w, .85f * h), sw, StrokeCap.Round)
+    drawLine(c, Offset(.75f * w, .3f * h), Offset(.75f * w, .7f * h), sw, StrokeCap.Round)
+}
+val IcDotsFew: IconPaint = { c ->
+    drawCircle(c, size.minDimension * .09f, Offset(size.width * .35f, size.height * .5f))
+    drawCircle(c, size.minDimension * .09f, Offset(size.width * .65f, size.height * .5f))
+}
+val IcDotsMany: IconPaint = { c ->
+    for (i in 0 until 3) for (j in 0 until 2) {
+        drawCircle(c, size.minDimension * .08f, Offset(size.width * (.2f + .3f * i), size.height * (.35f + .3f * j)))
+    }
+}
 
 @Composable
 fun Ic(paint: IconPaint, color: Color, size: androidx.compose.ui.unit.Dp = 24.dp, modifier: Modifier = Modifier) {
     Canvas(modifier.size(size)) { this.paint(color) }
 }
 
-// ---------- roda de cores ----------
+class NavItem(val label: String, val icon: IconPaint)
+
+// ---------- slider expressivo (SliderWithTrackIcons) com deslize suave ----------
+@Composable
+fun ExpressiveSlider(
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    range: ClosedFloatingPointRange<Float>,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    startIcon: IconPaint? = null,
+    endIcon: IconPaint? = null,
+    onFinished: (() -> Unit)? = null,
+) {
+    val anim = remember { Animatable(value) }
+    // o valor mostrado "persegue" o dedo com uma mola: o deslize fica fluido, sem colar no toque
+    LaunchedEffect(value) { anim.animateTo(value, spring(dampingRatio = 0.75f, stiffness = 240f)) }
+    Slider(
+        value = anim.value.coerceIn(range.start, range.endInclusive),
+        onValueChange = onValueChange,
+        modifier = modifier,
+        enabled = enabled,
+        onValueChangeFinished = onFinished,
+        valueRange = range,
+        track = { st ->
+            val activeColor = SliderDefaults.colors().activeTickColor
+            val inactiveColor = SliderDefaults.colors().inactiveTickColor
+            SliderDefaults.Track(
+                sliderState = st,
+                modifier = Modifier.height(36.dp).drawWithContent {
+                    drawContent()
+                    val isz = 20.dp.toPx()
+                    val pad = 10.dp.toPx()
+                    val gap = 6.dp.toPx()
+                    val y = size.height / 2 - isz / 2
+                    val activeEnd = size.width * st.coercedValueAsFraction - gap
+                    fun put(p: IconPaint, x: Float) {
+                        val col = if (x + isz / 2 < activeEnd) activeColor else inactiveColor
+                        inset(x, y, size.width - x - isz, size.height - y - isz) { p(this, col) }
+                    }
+                    startIcon?.let { put(it, pad) }
+                    endIcon?.let { put(it, size.width - pad - isz) }
+                },
+                drawStopIndicator = null,
+                thumbTrackGapSize = 6.dp,
+            )
+        },
+    )
+}
+
+// ---------- roda de cores (a bolinha desliza com mola) ----------
 @Composable
 fun ColorWheel(
     hue: Int,
@@ -166,6 +283,16 @@ fun ColorWheel(
 ) {
     var box by remember { mutableStateOf(IntSize.Zero) }
     val colors = remember { (0..6).map { Color.hsv((it * 60f).coerceAtMost(360f), 1f, 1f) } }
+    val ball = remember { Animatable(Offset.Zero, Offset.VectorConverter) }
+    LaunchedEffect(hue, sat, box) {
+        if (box.width > 0) {
+            val r = box.width / 2f
+            val a = Math.toRadians(hue.toDouble())
+            val d = sat / 1000f * r
+            val t = Offset(r + (cos(a) * d).toFloat(), r + (sin(a) * d).toFloat())
+            if (ball.value == Offset.Zero) ball.snapTo(t) else ball.animateTo(t, spring(dampingRatio = 0.7f, stiffness = 170f))
+        }
+    }
     fun pick(p: Offset) {
         val cx = box.width / 2f
         val cy = box.height / 2f
@@ -175,8 +302,7 @@ fun ColorWheel(
         val dy = p.y - cy
         var a = Math.toDegrees(atan2(dy, dx).toDouble()).toFloat()
         if (a < 0) a += 360f
-        val d = kotlin.math.hypot(dx, dy)
-        onChange(a.toInt(), (min(d / r, 1f) * 1000).toInt())
+        onChange(a.toInt(), (min(hypot(dx, dy) / r, 1f) * 1000).toInt())
     }
     Canvas(
         modifier
@@ -201,16 +327,13 @@ fun ColorWheel(
         val r = size.minDimension / 2f
         drawCircle(brush = Brush.sweepGradient(colors, center), radius = r)
         drawCircle(brush = Brush.radialGradient(listOf(Color.White, Color.Transparent), center = center, radius = r), radius = r)
-        val ang = Math.toRadians(hue.toDouble())
-        val dist = sat / 1000f * r
-        val p = Offset(center.x + (cos(ang) * dist).toFloat(), center.y + (sin(ang) * dist).toFloat())
+        val p = ball.value
         drawCircle(Color.hsv(hue.toFloat().coerceIn(0f, 360f), (sat / 1000f).coerceIn(0f, 1f), 1f), 16.dp.toPx(), p)
         drawCircle(Color.White, 16.dp.toPx(), p, style = Stroke(3.dp.toPx()))
     }
 }
 
 // ---------- seletor de horário em roda (sem diálogos do sistema) ----------
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun WheelPicker(count: Int, value: Int, onChange: (Int) -> Unit, modifier: Modifier = Modifier) {
     val item = 44.dp
@@ -252,45 +375,4 @@ private fun centerIndex(s: LazyListState): Int {
     val li = s.layoutInfo
     val c = (li.viewportStartOffset + li.viewportEndOffset) / 2
     return li.visibleItemsInfo.minByOrNull { abs(it.offset + it.size / 2 - c) }?.index ?: 0
-}
-
-// ---------- barra flutuante em pílula ----------
-class NavItem(val label: String, val icon: IconPaint)
-
-@Composable
-fun NavPill(items: List<NavItem>, selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
-    val tick = LocalTick.current
-    Surface(
-        modifier = modifier,
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.92f),
-        shadowElevation = 10.dp,
-    ) {
-        Row(Modifier.padding(6.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-            items.forEachIndexed { i, it ->
-                val sel = i == selected
-                val bg by animateColorAsState(
-                    if (sel) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent, label = "navbg",
-                )
-                val fg = if (sel) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
-                Column(
-                    Modifier.clip(CircleShape).background(bg).clickable { tick(); onSelect(i) }
-                        .padding(horizontal = 14.dp, vertical = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Ic(it.icon, fg, 22.dp)
-                    Text(it.label, style = MaterialTheme.typography.labelSmall, color = fg)
-                }
-            }
-        }
-    }
-}
-
-/** Degradê suave nas bordas (igual no topo e na base). */
-@Composable
-fun EdgeFade(top: Boolean, height: androidx.compose.ui.unit.Dp, modifier: Modifier = Modifier) {
-    val bg = MaterialTheme.colorScheme.background
-    val stops = listOf(0.94f, 0.82f, 0.58f, 0.3f, 0.1f, 0f).map { bg.copy(alpha = it) }
-    val brush = if (top) Brush.verticalGradient(stops) else Brush.verticalGradient(stops.reversed())
-    Box(modifier.fillMaxWidth().height(height).background(brush))
 }
