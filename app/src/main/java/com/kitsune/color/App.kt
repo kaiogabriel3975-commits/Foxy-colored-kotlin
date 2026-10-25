@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -388,6 +389,12 @@ fun App(c: Container, dark: Boolean) {
             val pwrScale by androidx.compose.animation.core.animateFloatAsState(
                 if (pressed) 0.86f else 1f, spring(dampingRatio = 0.4f, stiffness = 520f), label = "pwr",
             )
+            val leadingC: (@Composable RowScope.() -> Unit)? = if (leading.isNotEmpty()) {
+                { leading.forEach { item -> NavBtn(item.second, item.first == screen) { go(item.first) } } }
+            } else null
+            val trailingC: (@Composable RowScope.() -> Unit)? = if (trailing.isNotEmpty()) {
+                { trailing.forEach { item -> NavBtn(item.second, item.first == screen) { go(item.first) } } }
+            } else null
             HorizontalFloatingToolbar(
                 expanded = expanded,
                 modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = botInset + 16.dp)
@@ -397,12 +404,8 @@ fun App(c: Container, dark: Boolean) {
                 colors = FloatingToolbarDefaults.standardFloatingToolbarColors(
                     toolbarContainerColor = scheme.surfaceContainerHigh.copy(alpha = if (blurOn) 0.55f else 0.96f),
                 ),
-                leadingContent = if (leading.isNotEmpty()) {
-                    { leading.forEach { NavBtn(it.second, it.first == screen) { go(it.first) } } }
-                } else null,
-                trailingContent = if (trailing.isNotEmpty()) {
-                    { trailing.forEach { NavBtn(it.second, it.first == screen) { go(it.first) } } }
-                } else null,
+                leadingContent = leadingC,
+                trailingContent = trailingC,
                 content = {
                     FilledIconButton(
                         onClick = { tick(); led.changePower(!led.power) },
