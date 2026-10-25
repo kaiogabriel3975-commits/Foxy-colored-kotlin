@@ -43,7 +43,7 @@ dependencies {
     implementation("androidx.compose.ui:ui:1.9.4")
     implementation("androidx.compose.foundation:foundation:1.9.4")
     implementation("androidx.compose.animation:animation:1.9.4")
-    implementation("androidx.compose.material3:material3:1.4.0")
+    implementation("androidx.compose.material3:material3:1.5.0-alpha07")
     implementation("androidx.activity:activity-compose:1.10.1")
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("dev.chrisbanes.haze:haze:1.7.2")
