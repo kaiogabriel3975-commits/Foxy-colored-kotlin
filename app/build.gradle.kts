@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -6,7 +8,7 @@ plugins {
 
 android {
     namespace = "com.kitsune.color"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         // sufixo ".nativo" permite instalar junto com o app em HTML (com.kitsune.color)
@@ -31,18 +33,19 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions { jvmTarget = "17" }
     buildFeatures { compose = true }
     packaging { resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" } }
 }
 
+kotlin { compilerOptions { jvmTarget.set(JvmTarget.JVM_17) } }
+
 dependencies {
-    implementation(platform("androidx.compose:compose-bom:2024.10.01"))
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.foundation:foundation")
-    implementation("androidx.compose.material3:material3")
-    implementation("androidx.activity:activity-compose:1.9.3")
+    implementation("androidx.compose.ui:ui:1.9.4")
+    implementation("androidx.compose.foundation:foundation:1.9.4")
+    implementation("androidx.compose.animation:animation:1.9.4")
+    implementation("androidx.compose.material3:material3:1.4.0")
+    implementation("androidx.activity:activity-compose:1.10.1")
     implementation("androidx.core:core-ktx:1.15.0")
-    implementation("androidx.compose.animation:animation")
+    implementation("dev.chrisbanes.haze:haze:1.7.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 }
