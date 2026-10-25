@@ -41,6 +41,7 @@ class Prefs(ctx: Context) {
     val stopOnLeave = Flag(sp, "stopOnLeave", true)
     val autoNext = Flag(sp, "autoNext", true)
     val adv = Flag(sp, "adv", false)
+    val blur = Flag(sp, "blur", true)
 
     /** 0 = sistema, 1 = claro, 2 = escuro */
     var themeMode by mutableIntStateOf(sp.getInt("theme", 0))
@@ -51,6 +52,11 @@ class Prefs(ctx: Context) {
     var wallBlur by mutableIntStateOf(sp.getInt("wallBlur", 1))
         private set
     fun changeWallBlur(v: Int) { wallBlur = v; sp.edit().putInt("wallBlur", v).apply() }
+
+    /** 0 = cinza padrão, 1 = foto clara, 2 = foto escura, 3 = da galeria */
+    var wallChoice by mutableIntStateOf(sp.getInt("wallChoice", 0))
+        private set
+    fun changeWallChoice(v: Int) { wallChoice = v; sp.edit().putInt("wallChoice", v).apply() }
 
     var wallVersion by mutableIntStateOf(sp.getInt("wallVer", 0))
         private set
