@@ -10,6 +10,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -42,6 +44,8 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.staticCompositionLocalOf
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -70,6 +74,23 @@ import kotlin.math.sin
 
 /** Toque com vibração leve (se a preferência estiver ligada). */
 val LocalTick = staticCompositionLocalOf<() -> Unit> { {} }
+
+/** Blur do wallpaper para os cartões (null = sem blur), se o blur da interface está ligado e se está na horizontal. */
+val LocalHaze = staticCompositionLocalOf<HazeState?> { null }
+val LocalBlurOn = staticCompositionLocalOf { true }
+val LocalLand = staticCompositionLocalOf { false }
+
+/** Cartão sem cor, só com blur (e um contorno fino), para agrupar controles fora do menu. */
+@Composable
+fun BlurCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    val haze = LocalHaze.current
+    val shape = RoundedCornerShape(24.dp)
+    var m = modifier.fillMaxWidth().clip(shape)
+    if (haze != null && LocalBlurOn.current) m = m.hazeEffect(haze) { blurRadius = 20.dp; noiseFactor = 0f }
+    Box(m.border(1.dp, Color.White.copy(alpha = 0.10f), shape)) {
+        Box(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) { content() }
+    }
+}
 
 /** Clique com a física "elástica" do Material Expressive: encolhe ao tocar e volta com mola. */
 @Composable
@@ -182,6 +203,8 @@ val IcSunHigh: IconPaint = { c ->
         )
     }
 }
+val IcSatLow: IconPaint = { c -> drawCircle(c, size.minDimension * .2f, style = st()) }
+val IcSatHigh: IconPaint = { c -> drawCircle(c, size.minDimension * .24f) }
 val IcSlow: IconPaint = { c ->
     val w = size.width
     val h = size.height
@@ -237,7 +260,7 @@ fun ExpressiveSlider(
 ) {
     val anim = remember { Animatable(value) }
     // o valor mostrado "persegue" o dedo com uma mola: o deslize fica fluido, sem colar no toque
-    LaunchedEffect(value) { anim.animateTo(value, spring(dampingRatio = 0.75f, stiffness = 240f)) }
+    LaunchedEffect(value) { anim.animateTo(value, spring(dampingRatio = 0.85f, stiffness = 720f)) }
     Slider(
         value = anim.value.coerceIn(range.start, range.endInclusive),
         onValueChange = onValueChange,
@@ -284,6 +307,9 @@ fun ColorWheel(
     var box by remember { mutableStateOf(IntSize.Zero) }
     val colors = remember { (0..6).map { Color.hsv((it * 60f).coerceAtMost(360f), 1f, 1f) } }
     val ball = remember { Animatable(Offset.Zero, Offset.VectorConverter) }
+    var near by remember { mutableStateOf(false) }
+    val grow by animateFloatAsState(if (near) 1f else 0f, spring(dampingRatio = 0.6f, stiffness = 300f), label = "grow")
+    fun finish() { near = false; onEnd() }
     LaunchedEffect(hue, sat, box) {
         if (box.width > 0) {
             val r = box.width / 2f
@@ -302,18 +328,21 @@ fun ColorWheel(
         val dy = p.y - cy
         var a = Math.toDegrees(atan2(dy, dx).toDouble()).toFloat()
         if (a < 0) a += 360f
-        onChange(a.toInt(), (min(hypot(dx, dy) / r, 1f) * 1000).toInt())
+        val d = hypot(dx, dy) / r
+        near = d > 0.78f
+        onChange(a.toInt(), (min(d, 1f) * 1000).toInt())
     }
     Canvas(
         modifier
             .aspectRatio(1f)
+            .graphicsLayer { val sc = 1f + 0.07f * grow; scaleX = sc; scaleY = sc }
             .onSizeChanged { box = it }
             .pointerInput(enabled) {
                 if (enabled) {
                     detectDragGestures(
                         onDragStart = { pick(it) },
-                        onDragEnd = { onEnd() },
-                        onDragCancel = { onEnd() },
+                        onDragEnd = { finish() },
+                        onDragCancel = { finish() },
                     ) { change, _ ->
                         change.consume()
                         pick(change.position)
@@ -321,15 +350,16 @@ fun ColorWheel(
                 }
             }
             .pointerInput(enabled) {
-                if (enabled) detectTapGestures { pick(it); onEnd() }
+                if (enabled) detectTapGestures { pick(it); finish() }
             },
     ) {
         val r = size.minDimension / 2f
         drawCircle(brush = Brush.sweepGradient(colors, center), radius = r)
         drawCircle(brush = Brush.radialGradient(listOf(Color.White, Color.Transparent), center = center, radius = r), radius = r)
         val p = ball.value
-        drawCircle(Color.hsv(hue.toFloat().coerceIn(0f, 360f), (sat / 1000f).coerceIn(0f, 1f), 1f), 16.dp.toPx(), p)
-        drawCircle(Color.White, 16.dp.toPx(), p, style = Stroke(3.dp.toPx()))
+        val br = 16.dp.toPx() * (1f + 0.35f * grow)
+        drawCircle(Color.hsv(hue.toFloat().coerceIn(0f, 360f), (sat / 1000f).coerceIn(0f, 1f), 1f), br, p)
+        drawCircle(Color.White, br, p, style = Stroke(3.dp.toPx()))
     }
 }
 
