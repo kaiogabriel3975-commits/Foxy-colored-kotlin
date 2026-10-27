@@ -80,9 +80,9 @@ class LedController(private val ctx: Context, private val prefs: Prefs) {
         private set
     var sat by mutableIntStateOf(sp.getInt("s", 1000))
         private set
-    var bright by mutableIntStateOf(1000)
+    var bright by mutableIntStateOf(sp.getInt("bri", 1000))
         private set
-    var power by mutableStateOf(true)
+    var power by mutableStateOf(sp.getBoolean("pwr", true))
         private set
 
     val schOn = Sch(7, 0)
@@ -146,6 +146,7 @@ class LedController(private val ctx: Context, private val prefs: Prefs) {
         manualOff = false
         retry = 0
         lastDev = f.device
+        sp.edit().putString("addr", f.device.address).apply()
         deviceName = if (isDemo(f.name)) "leds do quarto" else f.name.ifBlank { f.address }
         openGatt(false)
     }
@@ -330,15 +331,17 @@ class LedController(private val ctx: Context, private val prefs: Prefs) {
     }
 
     fun changeBright(v: Int) {
-        bright = v.coerceIn(100, 1000)
+        bright = v.coerceIn(0, 1000)
+        sp.edit().putInt("bri", bright).apply()
         send("bright", brightFrame(bright))
     }
 
     /** Usado pela música: muda o brilho sem mexer no estado da tela. */
-    fun brightRaw(v: Int) = send("bright", brightFrame(v.coerceIn(100, 1000)))
+    fun brightRaw(v: Int) = send("bright", brightFrame(v.coerceIn(0, 1000)))
 
     fun changePower(on: Boolean) {
         power = on
+        sp.edit().putBoolean("pwr", on).apply()
         send("power", frame(0xBC, 0x01, 0x01, if (on) 1 else 0, 0x55))
     }
 
