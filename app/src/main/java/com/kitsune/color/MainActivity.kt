@@ -16,6 +16,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         box = Container(applicationContext)
+        Hub.box = box
         setContent {
             val sysDark = isSystemInDarkTheme()
             // textos e ícones se adaptam ao fundo: wallpaper escuro = tema escuro
@@ -38,6 +39,7 @@ class MainActivity : ComponentActivity() {
         if (isFinishing) {
             box.stopAudio()
             box.led.close()
+            Surfaces.cancelNotification(applicationContext)
         }
         super.onDestroy()
     }
