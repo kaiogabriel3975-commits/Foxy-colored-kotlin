@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:orientation="vertical" android:paddingStart="16dp" android:paddingEnd="16dp"
+    android:paddingTop="8dp" android:paddingBottom="12dp">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:gravity="center_vertical" android:orientation="horizontal">
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+            android:text="Kitsune color" android:textAppearance="@android:style/TextAppearance.Material.Notification.Title"/>
+        <ImageView android:id="@+id/n_power" android:layout_width="40dp" android:layout_height="40dp"
+            android:padding="8dp" android:src="@drawable/ic_power" android:contentDescription="Ligar ou desligar"/>
+    </LinearLayout>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="6dp" android:orientation="horizontal">
+        <ImageView android:id="@+id/n_c0" android:layout_width="28dp" android:layout_height="28dp" android:layout_marginEnd="12dp" android:src="@drawable/circle" android:contentDescription="@null"/>
+        <ImageView android:id="@+id/n_c1" android:layout_width="28dp" android:layout_height="28dp" android:layout_marginEnd="12dp" android:src="@drawable/circle" android:contentDescription="@null"/>
+        <ImageView android:id="@+id/n_c2" android:layout_width="28dp" android:layout_height="28dp" android:layout_marginEnd="12dp" android:src="@drawable/circle" android:contentDescription="@null"/>
+        <ImageView android:id="@+id/n_c3" android:layout_width="28dp" android:layout_height="28dp" android:layout_marginEnd="12dp" android:src="@drawable/circle" android:contentDescription="@null"/>
+        <ImageView android:id="@+id/n_c4" android:layout_width="28dp" android:layout_height="28dp" android:layout_marginEnd="12dp" android:src="@drawable/circle" android:contentDescription="@null"/>
+    </LinearLayout>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="12dp" android:orientation="horizontal">
+        <ImageView android:id="@+id/n_b0" android:layout_width="0dp" android:layout_height="12dp" android:layout_weight="1" android:layout_marginEnd="4dp" android:scaleType="fitXY" android:src="@drawable/seg" android:contentDescription="@null"/>
+        <ImageView android:id="@+id/n_b1" android:layout_width="0dp" android:layout_height="12dp" android:layout_weight="1" android:layout_marginEnd="4dp" android:scaleType="fitXY" android:src="@drawable/seg" android:contentDescription="@null"/>
+        <ImageView android:id="@+id/n_b2" android:layout_width="0dp" android:layout_height="12dp" android:layout_weight="1" android:layout_marginEnd="4dp" android:scaleType="fitXY" android:src="@drawable/seg" android:contentDescription="@null"/>
+        <ImageView android:id="@+id/n_b3" android:layout_width="0dp" android:layout_height="12dp" android:layout_weight="1" android:layout_marginEnd="4dp" android:scaleType="fitXY" android:src="@drawable/seg" android:contentDescription="@null"/>
+        <ImageView android:id="@+id/n_b4" android:layout_width="0dp" android:layout_height="12dp" android:layout_weight="1" android:layout_marginEnd="4dp" android:scaleType="fitXY" android:src="@drawable/seg" android:contentDescription="@null"/>
+    </LinearLayout>
+</LinearLayout>
