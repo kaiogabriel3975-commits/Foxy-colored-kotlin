@@ -42,6 +42,11 @@ class Prefs(ctx: Context) {
     val autoNext = Flag(sp, "autoNext", true)
     val adv = Flag(sp, "adv", false)
     val blur = Flag(sp, "blur", true)
+    val powerBtn = Flag(sp, "powerBtn", false)
+    val showSat = Flag(sp, "showSat", false)
+    val notif = Flag(sp, "notif", true)
+    val liveUpdate = Flag(sp, "liveUpdate", true)
+    val liveAlways = Flag(sp, "liveAlways", false)
 
     /** 0 = sistema, 1 = claro, 2 = escuro */
     var themeMode by mutableIntStateOf(sp.getInt("theme", 0))
