@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Kitsune color</string>
+    <string name="widget_desc">Liga/desliga, brilho e cores favoritas</string>
 </resources>
