@@ -24,6 +24,9 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.Dp
+import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import dev.chrisbanes.haze.HazeState
 import kotlin.math.max
 import kotlin.math.min
@@ -222,7 +225,8 @@ fun App(c: Container, dark: Boolean) {
     val menuProg = remember { Animatable(0f) }
     val connProg = remember { Animatable(0f) }
     val hazeAll = rememberHazeState()
-    val hazeWall = rememberHazeState()
+    val bdAll = rememberLayerBackdrop()
+    val bdWall = rememberLayerBackdrop()
     val anyMenu by rememberUpdatedState(menuOpen || connOpen)
 
     // a barra some "para trás" ao rolar para baixo e volta ao rolar para cima (ignora a rolagem dos menus)
@@ -363,13 +367,13 @@ fun App(c: Container, dark: Boolean) {
     val connH by animateDpAsState(connTarget, spring(dampingRatio = 0.85f, stiffness = 200f), label = "connH")
 
     CompositionLocalProvider(
-        LocalTick provides tick, LocalHaze provides hazeWall, LocalBlurOn provides blurOn,
+        LocalTick provides tick, LocalBackdrop provides bdWall, LocalBlurOn provides blurOn,
         LocalLand provides land, LocalContentColor provides scheme.onBackground,
     ) {
         Box(Modifier.fillMaxSize().nestedScroll(scrollWatch)) {
             // ---- fonte do blur: wallpaper (só ele, para os cartões) e wallpaper + telas (para cabeçalho/barra) ----
-            Box(Modifier.fillMaxSize().hazeSource(hazeAll)) {
-                Box(Modifier.fillMaxSize().hazeSource(hazeWall)) {
+            Box(Modifier.fillMaxSize().hazeSource(hazeAll).layerBackdrop(bdAll)) {
+                Box(Modifier.fillMaxSize().layerBackdrop(bdWall)) {
                     val blurDp = when (prefs.wallBlur) { 0 -> 0.dp; 1 -> 14.dp; else -> 28.dp }
                     var wm = Modifier.fillMaxSize().graphicsLayer { scaleX = 1.12f; scaleY = 1.12f }
                     if (blurDp > 0.dp && c.wall != null) wm = wm.blur(blurDp)
@@ -457,7 +461,8 @@ fun App(c: Container, dark: Boolean) {
                             .onGloballyPositioned { gearRect = it.boundsInRoot() }
                             .graphicsLayer { alpha = if (menuProg.value > 0.001f) 0f else 1f }
                             .bounceClick { menuOpen = true }
-                            .clip(CircleShape).background(scheme.surfaceContainerHigh),
+                            .glass(bdAll, CircleShape, blurOn, tint = scheme.surfaceContainerHigh.copy(alpha = 0.35f))
+                            .clip(CircleShape),
                         contentAlignment = Alignment.Center,
                     ) { Ic(IcGear, scheme.onSurface, 26.dp) }
                 }
@@ -472,13 +477,13 @@ fun App(c: Container, dark: Boolean) {
             // ---- barra flutuante (horizontal; lateral na horizontal do celular) ----
             NavToolbar(
                 land = land, items = visible, screen = screen, powerBtn = prefs.powerBtn.value, led = led, on = on,
-                haze = hazeAll, blurOn = blurOn, visible = barVisible, tick = tick, onGo = { go(it) },
+                haze = hazeAll, backdrop = bdAll, blurOn = blurOn, visible = barVisible, tick = tick, onGo = { go(it) },
                 botInset = botInset,
             )
 
             // ---- menus: o botão/engrenagem se expande até o centro (e volta) ----
             MorphMenu(
-                prog = menuProg, open = menuOpen, origin = gearRect, originCorner = 22.dp, blurOn = blurOn, haze = hazeAll,
+                prog = menuProg, open = menuOpen, origin = gearRect, originCorner = 22.dp, blurOn = blurOn, haze = hazeAll, backdrop = bdAll,
                 onDismiss = { menuOpen = false },
                 finalSize = { mw, mh ->
                     if (!land) {
@@ -496,7 +501,7 @@ fun App(c: Container, dark: Boolean) {
             }
             MorphMenu(
                 prog = connProg, open = connOpen, origin = connRect,
-                originCorner = with(density) { (connRect.height / 2f).toDp() }, blurOn = blurOn, haze = hazeAll,
+                originCorner = with(density) { (connRect.height / 2f).toDp() }, blurOn = blurOn, haze = hazeAll, backdrop = bdAll,
                 onDismiss = { connOpen = false; led.stopScan() },
                 finalSize = { mw, mh ->
                     val w = minOf(mw - 48.dp, 360.dp)
@@ -523,6 +528,7 @@ private fun MorphMenu(
     originCorner: Dp,
     blurOn: Boolean,
     haze: HazeState,
+    backdrop: Backdrop,
     onDismiss: () -> Unit,
     finalSize: (Dp, Dp) -> Pair<Dp, Dp>,
     content: @Composable () -> Unit,
@@ -552,8 +558,11 @@ private fun MorphMenu(
         Box(
             Modifier.offset { IntOffset((cx - w / 2f).roundToInt(), (cy - h / 2f).roundToInt()) }
                 .size(with(density) { w.toDp() }, with(density) { h.toDp() })
-                .clip(RoundedCornerShape(lerp(originCorner, 32.dp, q)))
-                .background(scheme.surfaceContainerHigh.copy(alpha = lerp(1f, 0.5f, q))),
+                .glass(
+                    backdrop, RoundedCornerShape(lerp(originCorner, 32.dp, q)), blurOn, strong = true,
+                    tint = scheme.surfaceContainerHigh.copy(alpha = lerp(1f, 0.5f, q)),
+                )
+                .clip(RoundedCornerShape(lerp(originCorner, 32.dp, q))),
             contentAlignment = Alignment.Center,
         ) {
             Box(Modifier.requiredSize(fw, fh).graphicsLayer { alpha = ((p - 0.5f) / 0.5f).coerceIn(0f, 1f) }) { content() }
@@ -598,6 +607,7 @@ private fun NavToolbar(
     led: LedController,
     on: Boolean,
     haze: HazeState,
+    backdrop: Backdrop,
     blurOn: Boolean,
     visible: Boolean,
     tick: () -> Unit,
@@ -641,16 +651,14 @@ private fun NavToolbar(
             Box(
                 Modifier.offset { IntOffset(bounds.left.roundToInt(), bounds.top.roundToInt()) }
                     .size(with(density) { bounds.width.toDp() }, with(density) { bounds.height.toDp() })
-                    .clip(CircleShape)
-                    .then(if (blurOn) Modifier.hazeEffect(haze) { blurRadius = 24.dp; noiseFactor = 0f } else Modifier)
-                    .background(scheme.surfaceContainerHigh.copy(alpha = if (blurOn) 0.55f else 0.96f)),
+                    .glass(backdrop, CircleShape, blurOn, strong = true, tint = scheme.surfaceContainerHigh.copy(alpha = if (blurOn) 0.3f else 0.96f)),
             )
         }
         if (ind.value != Offset.Zero) {
             val r = with(density) { 24.dp.toPx() }
             Box(
                 Modifier.offset { IntOffset((ind.value.x - r).roundToInt(), (ind.value.y - r).roundToInt()) }
-                    .size(48.dp).clip(CircleShape).background(scheme.secondaryContainer),
+                    .size(48.dp).glass(backdrop, CircleShape, blurOn, strong = true, tint = scheme.secondaryContainer.copy(alpha = if (blurOn) 0.5f else 1f)),
             )
         }
         val colors = FloatingToolbarDefaults.standardFloatingToolbarColors(toolbarContainerColor = Color.Transparent)

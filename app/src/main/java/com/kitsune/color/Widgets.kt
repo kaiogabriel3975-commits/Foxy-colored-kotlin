@@ -56,6 +56,12 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
+import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.effects.blur
+import com.kyant.backdrop.effects.lens
+import com.kyant.backdrop.effects.vibrancy
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -76,18 +82,45 @@ import kotlin.math.sin
 val LocalTick = staticCompositionLocalOf<() -> Unit> { {} }
 
 /** Blur do wallpaper para os cartões (null = sem blur), se o blur da interface está ligado e se está na horizontal. */
-val LocalHaze = staticCompositionLocalOf<HazeState?> { null }
+val LocalBackdrop = staticCompositionLocalOf<Backdrop?> { null }
 val LocalBlurOn = staticCompositionLocalOf { true }
 val LocalLand = staticCompositionLocalOf { false }
 
-/** Cartão sem cor, só com blur (e um contorno fino), para agrupar controles fora do menu. */
+/**
+ * Liquid Glass: refração (lente), aberração cromática, vibração de cor, blur, brilho nas bordas e sombra.
+ * Sem backdrop (ou com o blur desligado) cai para um fundo translúcido simples.
+ */
+@Composable
+fun Modifier.glass(
+    backdrop: Backdrop?,
+    shape: Shape,
+    on: Boolean,
+    strong: Boolean = false,
+    tint: Color = Color.White.copy(alpha = 0.08f),
+): Modifier {
+    if (backdrop == null || !on) return this.background(tint, shape)
+    return this.drawBackdrop(
+        backdrop = backdrop,
+        shape = { shape },
+        effects = {
+            vibrancy()
+            blur((if (strong) 6.dp else 3.dp).toPx())
+            lens(
+                refractionHeight = (if (strong) 22.dp else 10.dp).toPx(),
+                refractionAmount = (if (strong) 44.dp else 22.dp).toPx(),
+                depthEffect = true,
+                chromaticAberration = true,
+            )
+        },
+        onDrawSurface = { drawRect(tint) },
+    )
+}
+
+/** Cartão de vidro líquido para agrupar controles fora do menu. */
 @Composable
 fun BlurCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    val haze = LocalHaze.current
     val shape = RoundedCornerShape(24.dp)
-    var m = modifier.fillMaxWidth().clip(shape)
-    if (haze != null && LocalBlurOn.current) m = m.hazeEffect(haze) { blurRadius = 20.dp; noiseFactor = 0f }
-    Box(m.border(1.dp, Color.White.copy(alpha = 0.10f), shape)) {
+    Box(modifier.fillMaxWidth().glass(LocalBackdrop.current, shape, LocalBlurOn.current)) {
         Box(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) { content() }
     }
 }
